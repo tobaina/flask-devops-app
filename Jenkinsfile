@@ -44,7 +44,7 @@ pipeline {
         stage('Upload to S3') {
             steps {
                 sh '''
-                    tar -czf app-artifact.tar.gz app.py requirements.txt templates/ static/ init_db.sql Jenkinsfile tests/
+                    tar -czf app-artifact.tar.gz app.py requirements.txt templates/ init_db.sql Jenkinsfile tests/
                 '''
                 withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: 'us-east-1') {
                     s3Upload(bucket: "${S3_BUCKET}", path: "builds/app-artifact.tar.gz", file: "app-artifact.tar.gz")
