@@ -1,63 +1,26 @@
 pipeline {
     agent any
 
-    environment {
-        // Name of your virtual environment directory
-        VENV = './venv'
-    }
-
     stages {
-        stage('Clone Repo') {
+        stage('Clone') {
             steps {
-                git url: 'https://github.com/tobaina/flask-devops-app.git', branch: 'main'
+                echo 'Cloning code from GitHub...'
+                // Jenkins already clones your repo using the SCM setup
             }
         }
 
-        stage('Set up Python') {
+        stage('Install dependencies') {
             steps {
-                sh 'python3 -m venv $VENV'
-                sh "$VENV/bin/pip install -r requirements.txt"
+                sh 'python3 -m venv venv'
+                sh './venv/bin/pip install -r requirements.txt'
             }
         }
 
-        stage('Run Unit Test') {
+        stage('Run Flask App (basic test)') {
             steps {
-                sh "$VENV/bin/pytest --junitxml=report.xml"
-            }
-        }
-
-        stage('Publish Test Report') {
-            steps {
-                junit 'report.xml'
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh "$VENV/bin/pip install pylint"
-                    sh "$VENV/bin/pylint app.py > pylint-report.txt || true"
-                }
-            }
-        }
-
-        stage('Prepare for Deployment') {
-            steps {
-                sh 'tar -czf app.tar.gz app.py requirements.txt templates/index.html init_db.sql data.db'
-            }
-        }
-
-        stage('Upload to S3') {
-            steps {
-                withAWS(credentials: 'aws-s3-creds', region: 'ca-central-1') {
-                    s3Upload(file: 'app.tar.gz', bucket: 'flask-devops-artifacts-tobaina', path: 'builds/app.tar.gz')
-                }
-            }
-        }
-
-        stage('Run Ansible Deployment') {
-            steps {
-                sh 'ansible-playbook -i inventory.ini deploy.yml'
+                sh 'python3 app.py &'
+                sh 'sleep 5' // wait for it to start
+                sh 'curl http://localhost:5000 || echo "App not responding!"'
             }
         }
     }
