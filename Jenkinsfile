@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        // Name of your virtual environment directory
+        VENV = './venv'
+    }
+
     stages {
         stage('Clone Repo') {
             steps {
@@ -10,20 +15,29 @@ pipeline {
 
         stage('Set up Python') {
             steps {
-                sh 'python3 -m venv venv'
-                sh './venv/bin/pip install -r requirements.txt'
+                sh 'python3 -m venv $VENV'
+                sh "$VENV/bin/pip install -r requirements.txt"
             }
         }
 
         stage('Run Unit Test') {
             steps {
-                sh './venv/bin/pytest --junitxml=report.xml'
+                sh "$VENV/bin/pytest --junitxml=report.xml"
             }
         }
 
         stage('Publish Test Report') {
             steps {
                 junit 'report.xml'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh "$VENV/bin/pip install pylint"
+                    sh "$VENV/bin/pylint app.py > pylint-report.txt || true"
+                }
             }
         }
 
@@ -38,6 +52,12 @@ pipeline {
                 withAWS(credentials: 'aws-s3-creds', region: 'ca-central-1') {
                     s3Upload(file: 'app.tar.gz', bucket: 'flask-devops-artifacts-tobaina', path: 'builds/app.tar.gz')
                 }
+            }
+        }
+
+        stage('Run Ansible Deployment') {
+            steps {
+                sh 'ansible-playbook -i inventory.ini deploy.yml'
             }
         }
     }
