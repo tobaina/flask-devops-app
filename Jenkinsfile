@@ -5,7 +5,7 @@ pipeline {
         stage('Clone') {
             steps {
                 echo 'Cloning code from GitHub...'
-                // Jenkins already clones your repo using the SCM setup
+                // Already done by Jenkins using "Pipeline from SCM"
             }
         }
 
@@ -18,9 +18,12 @@ pipeline {
 
         stage('Run Flask App (basic test)') {
             steps {
-                sh 'python3 app.py &'
-                sh 'sleep 5' // wait for it to start
-                sh 'curl http://localhost:5000 || echo "App not responding!"'
+                sh '''
+                    source venv/bin/activate
+                    nohup python app.py > app.log 2>&1 &
+                    sleep 5
+                    curl http://localhost:5000 || echo "App not responding!"
+                '''
             }
         }
     }
