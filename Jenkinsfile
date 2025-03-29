@@ -32,5 +32,13 @@ pipeline {
                 sh 'tar -czf app.tar.gz app.py requirements.txt templates/index.html init_db.sql data.db'
             }
         }
+
+        stage('Upload to S3') {
+            steps {
+                withAWS(credentials: 'aws-s3-creds', region: 'ca-central-1') {
+                    s3Upload(file: 'app.tar.gz', bucket: 'flask-devops-artifacts-tobaina', path: 'builds/app.tar.gz')
+                }
+            }
+        }
     }
 }
