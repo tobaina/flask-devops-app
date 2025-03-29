@@ -19,7 +19,7 @@ pipeline {
         stage('Run Flask App (basic test)') {
             steps {
                 sh '''
-                    source venv/bin/activate
+                    . venv/bin/activate
                     nohup python app.py > app.log 2>&1 &
                     sleep 5
                     curl http://localhost:5000 || echo "App not responding!"
