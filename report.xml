@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.241" timestamp="2025-03-28T19:25:41.978698-04:00" hostname="Oluwatobis-MBP"><testcase classname="test_app.BasicTests" name="test_home_status_code" time="0.019" /></testsuite></testsuites>
