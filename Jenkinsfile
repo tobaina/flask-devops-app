@@ -7,12 +7,6 @@ pipeline {
     }
 
     stages {
-        stage('Clone') {
-            steps {
-                echo 'Cloning code from GitHub...'
-            }
-        }
-
         stage('Install dependencies') {
             steps {
                 sh 'python3 -m venv venv'
@@ -30,17 +24,6 @@ pipeline {
             }
         }
 
-        stage('Run Flask App (basic test)') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-                    nohup python app.py > app.log 2>&1 &
-                    sleep 5
-                    curl http://localhost:5000 || echo "App not responding!"
-                '''
-            }
-        }
-
         stage('Upload to S3') {
             steps {
                 sh '''
@@ -48,6 +31,14 @@ pipeline {
                 '''
                 withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: 'ca-central-1') {
                     s3Upload(bucket: "${S3_BUCKET}", path: "builds/app-artifact.tar.gz", file: "app-artifact.tar.gz")
+                }
+            }
+        }
+
+        stage('Deploy with Ansible') {
+            steps {
+                dir('ansible') {
+                    sh 'ansible-playbook playbooks/deploy_flask.yml'
                 }
             }
         }
