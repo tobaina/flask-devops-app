@@ -1,0 +1,21 @@
+---
+- name: Stop Flask App
+  systemd:
+    name: flask
+    state: stopped
+  become: true
+
+- name: Start Flask App
+  systemd:
+    name: flask
+    state: started
+    enabled: yes
+  become: true
+
+- name: Restart Flask App
+  systemd:
+    name: flask
+    state: restarted
+    enabled: yes
+  become: true
+

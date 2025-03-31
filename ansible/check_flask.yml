@@ -1,0 +1,16 @@
+# ~/ansible/playbooks/check_flask.yml
+- name: Check Flask app status
+  hosts: app_servers
+  gather_facts: false
+
+  tasks:
+    - name: Curl Flask app
+      uri:
+        url: http://localhost:5000
+        return_content: yes
+      register: flask_response
+
+    - name: Show response
+      debug:
+        msg: "{{ flask_response.content }}"
+

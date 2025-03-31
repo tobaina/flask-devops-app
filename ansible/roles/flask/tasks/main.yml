@@ -1,0 +1,88 @@
+---
+- name: Install Python 3 and pip
+  become: yes
+  package:
+    name:
+      - python3
+      - python3-pip
+    state: present
+
+- name: Copy Flask app files
+  copy:
+    src: "{{ item }}"
+    dest: "/home/{{ ansible_user }}/{{ item }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+  with_items:
+    - app.py
+    - requirements.txt
+
+- name: Copy templates directory
+  copy:
+    src: templates/
+    dest: /home/{{ ansible_user }}/templates/
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Copy DB init script
+  copy:
+    src: init_db.sql
+    dest: /home/{{ ansible_user }}/init_db.sql
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+
+- name: Remove old SQLite DB
+  file:
+    path: /home/{{ ansible_user }}/messages.db
+    state: absent
+
+# Install SQLite based on distro
+- name: Install SQLite on Debian/Ubuntu
+  become: yes
+  apt:
+    name: sqlite3
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install SQLite on RHEL/Fedora
+  become: yes
+  dnf:
+    name: sqlite
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install SQLite on Amazon Linux
+  become: yes
+  shell: dnf install -y sqlite
+  when: "'amazon' in ansible_distribution | lower"
+
+- name: Initialize SQLite DB
+  shell: sqlite3 messages.db < init_db.sql
+  args:
+    chdir: /home/{{ ansible_user }}
+
+- name: Set permissions on messages.db
+  file:
+    path: /home/{{ ansible_user }}/messages.db
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0664'
+
+- name: Install required Python packages
+  pip:
+    requirements: /home/{{ ansible_user }}/requirements.txt
+
+- name: Stop any running Flask app
+  command: pkill -f "python3 app.py" || true
+  ignore_errors: yes
+
+
+- name: Start Flask app
+  shell: nohup python3 /home/{{ ansible_user }}/app.py > /home/{{ ansible_user }}/flask.log 2>&1 &
+
+- name: Include Flask systemd setup
+  include_tasks: flask_service.yml
+

@@ -1,0 +1,30 @@
+- name: Create systemd unit file for Flask
+  copy:
+    dest: /etc/systemd/system/flask.service
+    content: |
+      [Unit]
+      Description=Flask App
+      After=network.target
+
+      [Service]
+      User={{ ansible_user }}
+      WorkingDirectory=/home/{{ ansible_user }}
+      ExecStart=/usr/bin/python3 /home/{{ ansible_user }}/app.py
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+  become: true
+
+- name: Reload systemd to pick up new flask service
+  systemd:
+    daemon_reload: yes
+  become: true
+
+- name: Enable and start Flask service
+  systemd:
+    name: flask
+    enabled: yes
+    state: restarted
+  become: true
+

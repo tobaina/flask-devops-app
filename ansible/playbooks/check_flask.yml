@@ -1,0 +1,16 @@
+---
+- name: Check Flask app status
+  hosts: app_servers
+  gather_facts: false
+
+  tasks:
+    - name: Check if Flask is responding
+      uri:
+        url: http://localhost:5000
+        return_content: yes
+      register: flask_response
+
+    - name: Print Flask response
+      debug:
+        var: flask_response.content
+
