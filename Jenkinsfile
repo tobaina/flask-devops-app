@@ -14,6 +14,24 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh '''
+                        ./venv/bin/pip install coverage
+                        ./venv/bin/coverage run -m pytest tests/
+                        ./venv/bin/coverage xml
+                        sonar-scanner \
+                          -Dsonar.projectKey=flask-devops-app \
+                          -Dsonar.python.coverage.reportPaths=coverage.xml \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
         stage('Run Tests') {
             steps {
                 sh '''
