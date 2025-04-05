@@ -4,6 +4,8 @@ pipeline {
     environment {
         S3_BUCKET = 'flask-devops-artifacts-tobaina'
         AWS_CREDENTIALS_ID = 'aws-s3-creds'
+        SONAR_AUTH_TOKEN = credentials('sonar-token')  // pulled securely
+        SONAR_HOST_URL = 'http://35.183.48.7:9000'     // your SonarQube URL
     }
 
     stages {
@@ -56,7 +58,7 @@ pipeline {
         stage('Deploy with Ansible') {
             steps {
                 dir('ansible') {
-                    sh 'ansible-playbook playbooks/deploy_flask.yml'
+                    sh 'ansible-playbook -i dynamic_inventory.aws_ec2.yml playbooks/deploy_flask.yml'
                 }
             }
         }
