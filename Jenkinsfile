@@ -4,17 +4,20 @@ pipeline {
     environment {
         S3_BUCKET = 'flask-devops-artifacts-tobaina'
         AWS_CREDENTIALS_ID = 'aws-s3-creds'
-        SONARQUBE_ENV = 'sonar'  // This matches the name you configured
+        SONARQUBE_ENV = 'sonar'
         NEXUS_CREDENTIALS_ID = 'nexus-creds'
         NEXUS_URL = 'http://35.183.72.244:8081/repository/flask-devops-artifacts/'
     }
 
     stages {
 
-        stage('Install dependencies') {
+        stage('Set up Python Environment') {
             steps {
-                sh 'python3 -m venv venv'
-                sh './venv/bin/pip install -r requirements.txt'
+                sh '''
+                    python3 -m venv venv
+                    ./venv/bin/pip install --upgrade pip
+                    ./venv/bin/pip install -r requirements.txt
+                '''
             }
         }
 
@@ -37,7 +40,6 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    . venv/bin/activate
                     echo "Running unit tests..."
                     ./venv/bin/pytest tests/
                 '''
@@ -64,7 +66,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
                     sh '''
-                        curl -v -u $NEXUS_USER:$NEXUS_PASS --upload-file app-artifact.tar.gz ${NEXUS_URL}app-artifact.tar.gz
+                        curl -v -u "$NEXUS_USER:$NEXUS_PASS" --upload-file app-artifact.tar.gz "${NEXUS_URL}app-artifact.tar.gz"
                     '''
                 }
             }
@@ -77,6 +79,8 @@ pipeline {
                         sh '''
                             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                            cp ../app-artifact.tar.gz .
+                            cp ../init_db.sql .
                             ansible-playbook -i dynamic_inventory.aws_ec2.yml playbooks/deploy_flask.yml
                         '''
                     }
