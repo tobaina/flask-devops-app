@@ -1,6 +1,29 @@
 - name: Deploy Flask app to flask servers
   hosts: flask_servers
-  become: true
-  roles:
-    - flask
+  become: yes
+
+  tasks:
+    - name: Install required packages
+      yum:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install Flask
+      pip:
+        name: flask
+
+    - name: Copy app files
+      copy:
+        src: /tmp/app/
+        dest: /home/ec2-user/app/
+        remote_src: yes
+
+    - name: Start Flask app
+      shell: |
+        cd /home/ec2-user/app/
+        nohup flask run --host=0.0.0.0 &
+      args:
+        executable: /bin/bash
 
