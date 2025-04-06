@@ -4,13 +4,13 @@ pipeline {
     environment {
         S3_BUCKET = 'flask-devops-artifacts-tobaina'
         AWS_CREDENTIALS_ID = 'aws-s3-creds'
-        SONAR_AUTH_TOKEN = credentials('sonar-token')      // Pull Sonar token from Jenkins credentials
-        SONAR_HOST_URL = 'http://99.79.70.72:9000'          // SonarQube URL
-        NEXUS_CREDENTIALS_ID = 'nexus-creds'                // Nexus credentials
-        NEXUS_URL = 'http://3.96.142.220:8081/repository/flask-devops-artifacts/'  // Nexus repository URL
+        SONARQUBE_ENV = 'sonar'  // This matches the name you configured
+        NEXUS_CREDENTIALS_ID = 'nexus-creds'
+        NEXUS_URL = 'http://3.96.142.220:8081/repository/flask-devops-artifacts/'
     }
 
     stages {
+
         stage('Install dependencies') {
             steps {
                 sh 'python3 -m venv venv'
@@ -20,17 +20,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar') {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
                     sh '''
                         ./venv/bin/pip install coverage
                         ./venv/bin/coverage run -m pytest tests/
                         ./venv/bin/coverage xml
                         sonar-scanner \
                           -Dsonar.projectKey=flask-devops-app \
-                          -Dsonar.python.coverage.reportPaths=coverage.xml \
                           -Dsonar.sources=. \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                          -Dsonar.python.coverage.reportPaths=coverage.xml
                     '''
                 }
             }
