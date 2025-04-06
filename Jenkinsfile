@@ -2,17 +2,21 @@ pipeline {
     agent any
 
     environment {
-        S3_BUCKET = 'flask-devops-artifacts-tobaina'
-        AWS_CREDENTIALS_ID = 'aws-s3-creds'
-        SONAR_AUTH_TOKEN = credentials('sonar-token')  // pulled securely
-        SONAR_HOST_URL = 'http://35.183.48.7:9000'     // your SonarQube URL
+        // AWS and Nexus environment variables
+        AWS_DEFAULT_REGION = 'ca-central-1'
+        S3_BUCKET          = 'flask-devops-artifacts-tobaina'
+        NEXUS_URL          = 'http://35.183.72.244:8081'
+        NEXUS_REPO         = 'flask-artifacts'  // Use the real Nexus raw repo name you created
+
+        // SonarQube variables (assuming you have these as Jenkins credentials or env variables)
+        SONARQUBE_URL      = 'http://35.183.48.7:9000'  // Your SonarQube URL
+        SONARQUBE_TOKEN    = credentials('sonar-token') // SonarQube token securely pulled
     }
 
     stages {
-        stage('Install dependencies') {
+        stage('Checkout') {
             steps {
-                sh 'python3 -m venv venv'
-                sh './venv/bin/pip install -r requirements.txt'
+                git url: 'https://github.com/tobaina/flask-devops-app.git', branch: 'main'
             }
         }
 
@@ -20,47 +24,76 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonar') {
                     sh '''
-                        ./venv/bin/pip install coverage
-                        ./venv/bin/coverage run -m pytest tests/
-                        ./venv/bin/coverage xml
                         sonar-scanner \
-                          -Dsonar.projectKey=flask-devops-app \
-                          -Dsonar.python.coverage.reportPaths=coverage.xml \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                        -Dsonar.projectKey=FlaskApp \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=$SONARQUBE_URL \
+                        -Dsonar.login=$SONARQUBE_TOKEN
                     '''
                 }
+            }
+        }
+
+        stage('Setup Virtual Environment') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
                 sh '''
-                    . venv/bin/activate
-                    echo "Running unit tests..."
-                    ./venv/bin/pytest tests/
+                    source venv/bin/activate
+                    pytest --maxfail=1 --disable-warnings -q
                 '''
             }
         }
 
-        stage('Upload to S3') {
+        stage('Package Application') {
             steps {
                 sh '''
-                    tar -czf app-artifact.tar.gz app.py requirements.txt templates/ init_db.sql Jenkinsfile tests/
+                    deactivate || true
+                    rm -rf venv
+                    tar -czvf app-artifact.tar.gz app.py requirements.txt templates/ init_db.sql Jenkinsfile tests/
                 '''
-                withAWS(credentials: "${AWS_CREDENTIALS_ID}", region: 'ca-central-1') {
-                    s3Upload(bucket: "${S3_BUCKET}", path: "builds/app-artifact.tar.gz", file: "app-artifact.tar.gz")
+                archiveArtifacts artifacts: 'app-artifact.tar.gz', fingerprint: true
+            }
+        }
+
+        stage('Upload Artifact to S3') {
+            steps {
+                sh 'aws s3 cp app-artifact.tar.gz s3://$S3_BUCKET/app-artifact.tar.gz'
+            }
+        }
+
+        stage('Upload Artifact to Nexus') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'nexus-creds-id', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
+                    sh '''
+                        curl -v -u ${NEXUS_USERNAME}:${NEXUS_PASSWORD} \
+                             --upload-file app-artifact.tar.gz \
+                             $NEXUS_URL/repository/$NEXUS_REPO/app-artifact.tar.gz
+                    '''
                 }
             }
         }
 
-        stage('Deploy with Ansible') {
+        stage('Ansible Deployment') {
             steps {
                 dir('ansible') {
                     sh 'ansible-playbook -i dynamic_inventory.aws_ec2.yml playbooks/deploy_flask.yml'
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
