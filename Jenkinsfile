@@ -4,14 +4,13 @@ pipeline {
     environment {
         S3_BUCKET = 'flask-devops-artifacts-tobaina'
         AWS_CREDENTIALS_ID = 'aws-s3-creds'
-        SONAR_AUTH_TOKEN = credentials('sonar-token')
-        SONAR_HOST_URL = 'http://99.79.70.72:9000'
-        NEXUS_CREDENTIALS_ID = 'nexus-creds'
-        NEXUS_URL = 'http://3.96.142.220:8081/repository/flask-devops-artifacts/'
+        SONAR_AUTH_TOKEN = credentials('sonar-token')      // Pull Sonar token from Jenkins credentials
+        SONAR_HOST_URL = 'http://99.79.70.72:9000'          // SonarQube URL
+        NEXUS_CREDENTIALS_ID = 'nexus-creds'                // Nexus credentials
+        NEXUS_URL = 'http://3.96.142.220:8081/repository/flask-devops-artifacts/'  // Nexus repository URL
     }
 
     stages {
-
         stage('Install dependencies') {
             steps {
                 sh 'python3 -m venv venv'
@@ -31,7 +30,7 @@ pipeline {
                           -Dsonar.python.coverage.reportPaths=coverage.xml \
                           -Dsonar.sources=. \
                           -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.token=$SONAR_AUTH_TOKEN
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
                     '''
                 }
             }
@@ -66,9 +65,9 @@ pipeline {
         stage('Upload to Nexus') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                    sh """
+                    sh '''
                         curl -v -u $NEXUS_USER:$NEXUS_PASS --upload-file app-artifact.tar.gz ${NEXUS_URL}app-artifact.tar.gz
-                    """
+                    '''
                 }
             }
         }
