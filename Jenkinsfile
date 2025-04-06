@@ -4,14 +4,14 @@ pipeline {
     environment {
         S3_BUCKET = 'flask-devops-artifacts-tobaina'
         AWS_CREDENTIALS_ID = 'aws-s3-creds'
-        SONAR_AUTH_TOKEN = credentials('sonar-token')
-        SONAR_HOST_URL = 'http://99.79.70.72:9000'   // your SonarQube server URL
-        NEXUS_URL = '99.79.70.72:8081'               // your Nexus server URL without http
-        NEXUS_REPOSITORY = 'flask-devops-repo'       // your Nexus repository name
-        NEXUS_CREDENTIALS_ID = 'nexus-creds'         // your Nexus credentials ID in Jenkins
+        SONAR_AUTH_TOKEN = credentials('sonar-token')  // pulled securely
+        SONAR_HOST_URL = 'http://99.79.70.72:9000'     // your SonarQube URL
+        NEXUS_CREDENTIALS_ID = 'nexus-creds'           // your Nexus Jenkins credentials ID
+        NEXUS_URL = 'http://3.96.142.220:8081/repository/flask-devops-artifacts/'  // your Nexus URL
     }
 
     stages {
+
         stage('Install dependencies') {
             steps {
                 sh 'python3 -m venv venv'
@@ -31,7 +31,7 @@ pipeline {
                           -Dsonar.python.coverage.reportPaths=coverage.xml \
                           -Dsonar.sources=. \
                           -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                          -Dsonar.token=$SONAR_AUTH_TOKEN
                     '''
                 }
             }
@@ -65,18 +65,11 @@ pipeline {
 
         stage('Upload to Nexus') {
             steps {
-                nexusArtifactUploader(
-                    nexusVersion: 'nexus3',
-                    protocol: 'http',
-                    nexusUrl: "${NEXUS_URL}",
-                    groupId: 'com.tobaina',
-                    version: '1.0.0',
-                    repository: "${NEXUS_REPOSITORY}",
-                    credentialsId: "${NEXUS_CREDENTIALS_ID}",
-                    artifacts: [
-                        [artifactId: 'flask-devops-app', classifier: '', file: 'app-artifact.tar.gz', type: 'tar.gz']
-                    ]
-                )
+                withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", passwordVariable: 'NEXUS_PASS', usernameVariable: 'NEXUS_USER')]) {
+                    sh '''
+                        curl -v -u $NEXUS_USER:$NEXUS_PASS --upload-file app-artifact.tar.gz ${NEXUS_URL}app-artifact.tar.gz
+                    '''
+                }
             }
         }
 
