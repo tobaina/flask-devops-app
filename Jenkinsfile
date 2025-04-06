@@ -6,7 +6,7 @@ pipeline {
         AWS_CREDENTIALS_ID = 'aws-s3-creds'
         SONARQUBE_ENV = 'sonar'  // This matches the name you configured
         NEXUS_CREDENTIALS_ID = 'nexus-creds'
-        NEXUS_URL = 'http://3.96.142.220:8081/repository/flask-devops-artifacts/'
+        NEXUS_URL = 'http://35.183.72.244:8081/repository/flask-devops-artifacts/'
     }
 
     stages {
