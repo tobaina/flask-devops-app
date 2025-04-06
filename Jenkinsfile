@@ -72,8 +72,14 @@ pipeline {
 
         stage('Deploy with Ansible') {
             steps {
-                dir('ansible') {
-                    sh 'ansible-playbook -i dynamic_inventory.aws_ec2.yml playbooks/deploy_flask.yml'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                    dir('ansible') {
+                        sh '''
+                            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                            ansible-playbook -i dynamic_inventory.aws_ec2.yml playbooks/deploy_flask.yml
+                        '''
+                    }
                 }
             }
         }
