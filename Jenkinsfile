@@ -9,7 +9,7 @@ pipeline {
         NEXUS_REPO         = 'flask-artifacts'  // Use the real Nexus raw repo name you created
 
         // SonarQube variables (assuming you have these as Jenkins credentials or env variables)
-        SONARQUBE_URL      = 'http://35.183.48.7:9000'  // Your SonarQube URL
+        SONARQUBE_URL      = 'http://99.79.70.72:9000'  // Your SonarQube URL
         SONARQUBE_TOKEN    = credentials('sonar-token') // SonarQube token securely pulled
     }
 
