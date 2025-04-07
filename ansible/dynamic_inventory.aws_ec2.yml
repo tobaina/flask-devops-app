@@ -4,9 +4,16 @@ regions:
 filters:
   tag:Environment: flask
 hostnames:
-  - ip-address
-keyed_groups:
-  - key: tags.Name
-    prefix: tag
-    separator: "_"
-
+  - tag:Name
+compose:
+  ansible_host: public_ip_address
+  ansible_user: |
+    {%- if 'debian' in tags.Name|lower -%}
+    admin
+    {%- elif 'centos' in tags.Name|lower -%}
+    fedora
+    {%- elif 'ubuntu' in tags.Name|lower -%}
+    ubuntu
+    {%- else -%}
+    ec2-user
+    {%- endif -%}
