@@ -70,7 +70,9 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
-                    sh 'ansible-playbook -i ansible/dynamic_inventory.aws_ec2.yml ansible/playbooks/deploy_flask.yml'
+                    sh '''
+                    ansible-playbook -i ansible/dynamic_inventory.aws_ec2.yml ansible/playbooks/deploy_flask.yml -u admin --private-key /home/ubuntu/wood.pem
+                    '''
                 }
             }
         }
