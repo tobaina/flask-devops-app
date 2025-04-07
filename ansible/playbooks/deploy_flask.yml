@@ -26,7 +26,7 @@
         dest: /tmp/app-artifact.tar.gz
         mode: '0644'
         url_username: admin
-        url_password: tomison   # 🔥 change this to your real Nexus password
+        url_password: tomison  # 🔥 change if needed
 
     - name: Create app directory
       file:
@@ -34,7 +34,7 @@
         state: directory
         mode: '0755'
 
-    - name: Extract application files
+    - name: Extract app artifact
       unarchive:
         src: /tmp/app-artifact.tar.gz
         dest: /home/{{ ansible_user }}/app
@@ -43,7 +43,7 @@
     - name: Start Flask app
       shell: |
         cd /home/{{ ansible_user }}/app
-        nohup flask run --host=0.0.0.0 --port=5000 &
+        nohup flask run --host=0.0.0.0 &
       args:
         executable: /bin/bash
 
