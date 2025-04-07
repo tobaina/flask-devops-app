@@ -2,6 +2,7 @@
 - name: Deploy Flask app to Flask instances
   hosts: aws_ec2
   become: yes
+
   tasks:
     - name: Ensure Python3, pip, tar, and sqlite3 are installed
       package:
@@ -30,21 +31,22 @@
     - name: Extract artifact
       unarchive:
         src: /home/ec2-user/flask-app/app-artifact.tar.gz
-        dest: /home/ec2-user/flask-app/
+        dest: /home/ec2-user/flask-app
         remote_src: yes
 
-    - name: Install Python dependencies
+    - name: Install Python requirements
       pip:
         requirements: /home/ec2-user/flask-app/requirements.txt
-        executable: pip3
+        virtualenv: /home/ec2-user/flask-app/venv
+        virtualenv_command: /usr/bin/python3 -m venv
 
-    - name: Initialize SQLite DB
-      command: sqlite3 data.db < init_db.sql
-      args:
-        chdir: /home/ec2-user/flask-app/
+    - name: Initialize SQLite database
+      command: sqlite3 /home/ec2-user/flask-app/app.db < /home/ec2-user/flask-app/init_db.sql
 
     - name: Start Flask app
-      shell: nohup python3 app.py > output.log 2>&1 &
+      shell: |
+        pkill -f "python3 app.py" || true
+        nohup /home/ec2-user/flask-app/venv/bin/python3 app.py > /home/ec2-user/flask-app/app.log 2>&1 &
       args:
-        chdir: /home/ec2-user/flask-app/
+        chdir: /home/ec2-user/flask-app
 
