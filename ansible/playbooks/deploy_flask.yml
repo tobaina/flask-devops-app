@@ -1,9 +1,110 @@
 ---
-- name: Deploy Flask app to Flask instances
-  hosts: aws_ec2
+- name: Deploy to Debian Node
+  hosts: tag_debian_node
   become: yes
+  remote_user: admin
+  vars:
+    ansible_ssh_private_key_file: /home/ubuntu/wood.pem
   tasks:
-    - name: Ensure Python3, pip, tar, and sqlite are installed
+    - name: Ensure Python3, pip, tar, and sqlite3 are installed
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3
+        - python3-pip
+        - tar
+        - sqlite3
+
+    - name: Create app directory
+      file:
+        path: /home/admin/flask-app
+        state: directory
+        owner: admin
+        group: admin
+        mode: '0755'
+
+    - name: Download app artifact from Nexus
+      get_url:
+        url: http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
+        dest: /home/admin/flask-app/app-artifact.tar.gz
+        mode: '0644'
+
+    - name: Extract artifact
+      unarchive:
+        src: /home/admin/flask-app/app-artifact.tar.gz
+        dest: /home/admin/flask-app
+        remote_src: yes
+
+    - name: Install Python requirements
+      pip:
+        requirements: /home/admin/flask-app/requirements.txt
+        virtualenv: /home/admin/flask-app/venv
+
+    - name: Start Flask app
+      shell: |
+        source /home/admin/flask-app/venv/bin/activate
+        nohup python3 /home/admin/flask-app/app.py > /home/admin/flask-app/flask.log 2>&1 &
+      args:
+        executable: /bin/bash
+
+- name: Deploy to CentOS Node
+  hosts: tag_centos_node
+  become: yes
+  remote_user: fedora
+  vars:
+    ansible_ssh_private_key_file: /home/ubuntu/wood.pem
+  tasks:
+    - name: Ensure Python3, pip, tar, and sqlite3 are installed
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3
+        - python3-pip
+        - tar
+        - sqlite
+
+    - name: Create app directory
+      file:
+        path: /home/fedora/flask-app
+        state: directory
+        owner: fedora
+        group: fedora
+        mode: '0755'
+
+    - name: Download app artifact from Nexus
+      get_url:
+        url: http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
+        dest: /home/fedora/flask-app/app-artifact.tar.gz
+        mode: '0644'
+
+    - name: Extract artifact
+      unarchive:
+        src: /home/fedora/flask-app/app-artifact.tar.gz
+        dest: /home/fedora/flask-app
+        remote_src: yes
+
+    - name: Install Python requirements
+      pip:
+        requirements: /home/fedora/flask-app/requirements.txt
+        virtualenv: /home/fedora/flask-app/venv
+
+    - name: Start Flask app
+      shell: |
+        source /home/fedora/flask-app/venv/bin/activate
+        nohup python3 /home/fedora/flask-app/app.py > /home/fedora/flask-app/flask.log 2>&1 &
+      args:
+        executable: /bin/bash
+
+- name: Deploy to App Server (Amazon Linux)
+  hosts: tag_app_server
+  become: yes
+  remote_user: ec2-user
+  vars:
+    ansible_ssh_private_key_file: /home/ubuntu/wood.pem
+  tasks:
+    - name: Ensure Python3, pip, tar, and sqlite3 are installed
       package:
         name: "{{ item }}"
         state: present
