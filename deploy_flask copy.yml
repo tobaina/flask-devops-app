@@ -1,0 +1,36 @@
+- name: Deploy to Debian Node
+  hosts: tag_Environment_flask
+  become: true
+
+  tasks:
+    - name: Ensure app directory exists
+      file:
+        path: /home/{{ ansible_user }}/flask-app
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Download artifact from Nexus
+      get_url:
+        url: http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
+        dest: /home/{{ ansible_user }}/flask-app/app-artifact.tar.gz
+        mode: '0644'
+
+    - name: Extract artifact
+      unarchive:
+        src: /home/{{ ansible_user }}/flask-app/app-artifact.tar.gz
+        dest: /home/{{ ansible_user }}/flask-app
+        remote_src: yes
+
+    - name: Install Python requirements
+      pip:
+        requirements: /home/{{ ansible_user }}/flask-app/requirements.txt
+        virtualenv: /home/{{ ansible_user }}/flask-app/venv
+
+    - name: Start Flask app
+      shell: |
+        source /home/{{ ansible_user }}/flask-app/venv/bin/activate
+        nohup python3 /home/{{ ansible_user }}/flask-app/app.py > /home/{{ ansible_user }}/flask-app/flask.log 2>&1 &
+      args:
+        executable: /bin/bash

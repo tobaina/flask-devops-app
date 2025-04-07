@@ -1,36 +1,66 @@
-- name: Deploy to Debian Node
-  hosts: tag_Environment_flask
-  become: true
+---
+- name: Deploy to All Servers
+  hosts: tag_debian_node:tag_centos_node:tag_app_server
+  become: yes
+  vars:
+    ansible_ssh_private_key_file: /home/ubuntu/wood.pem
 
   tasks:
-    - name: Ensure app directory exists
+    - name: Set remote user based on OS
+      set_fact:
+        remote_user: "{{ 'admin' if 'debian' in inventory_hostname else ('fedora' if 'centos' in inventory_hostname else 'ec2-user') }}"
+
+    - name: Ensure Python3, pip, tar, and sqlite3 are installed
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3
+        - python3-pip
+        - tar
+        - sqlite
+
+    - name: Create app directory
       file:
-        path: /home/{{ ansible_user }}/flask-app
+        path: "/home/{{ remote_user }}/flask-app"
         state: directory
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        owner: "{{ remote_user }}"
+        group: "{{ remote_user }}"
         mode: '0755'
 
-    - name: Download artifact from Nexus
+    - name: Download app artifact from Nexus
       get_url:
         url: http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
-        dest: /home/{{ ansible_user }}/flask-app/app-artifact.tar.gz
+        dest: "/home/{{ remote_user }}/flask-app/app-artifact.tar.gz"
         mode: '0644'
 
     - name: Extract artifact
       unarchive:
-        src: /home/{{ ansible_user }}/flask-app/app-artifact.tar.gz
-        dest: /home/{{ ansible_user }}/flask-app
+        src: "/home/{{ remote_user }}/flask-app/app-artifact.tar.gz"
+        dest: "/home/{{ remote_user }}/flask-app"
         remote_src: yes
+
+    - name: Remove old virtual environment if exists
+      file:
+        path: "/home/{{ remote_user }}/flask-app/venv"
+        state: absent
+
+    - name: Create virtual environment
+      command: python3 -m venv venv
+      args:
+        chdir: "/home/{{ remote_user }}/flask-app"
 
     - name: Install Python requirements
       pip:
-        requirements: /home/{{ ansible_user }}/flask-app/requirements.txt
-        virtualenv: /home/{{ ansible_user }}/flask-app/venv
+        requirements: "/home/{{ remote_user }}/flask-app/requirements.txt"
+        virtualenv: "/home/{{ remote_user }}/flask-app/venv"
 
-    - name: Start Flask app
+    - name: Kill existing Flask app (if running)
+      shell: "pkill -f 'python3 app.py' || true"
+
+    - name: Start Flask app in background
       shell: |
-        source /home/{{ ansible_user }}/flask-app/venv/bin/activate
-        nohup python3 /home/{{ ansible_user }}/flask-app/app.py > /home/{{ ansible_user }}/flask-app/flask.log 2>&1 &
+        source /home/{{ remote_user }}/flask-app/venv/bin/activate
+        nohup python3 /home/{{ remote_user }}/flask-app/app.py > /home/{{ remote_user }}/flask-app/flask.log 2>&1 &
       args:
         executable: /bin/bash
