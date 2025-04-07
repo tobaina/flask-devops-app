@@ -58,7 +58,7 @@ pipeline {
 
     stage('Upload to S3') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-s3-creds']]) {
           sh '''
             aws s3 cp app-artifact.tar.gz s3://flask-devops-artifacts-tobaina/builds/app-artifact.tar.gz
           '''
@@ -78,7 +78,7 @@ pipeline {
 
     stage('Deploy with Ansible') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-s3-creds']]) {
           sh '''
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
