@@ -68,9 +68,9 @@ pipeline {
 
     stage('Upload to Nexus') {
       steps {
-        withCredentials([string(credentialsId: 'nexus-password', variable: 'NEXUS_PASS')]) {
+        withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
           sh '''
-            curl -u admin:$NEXUS_PASS --fail --upload-file app-artifact.tar.gz http://35.183.72.244:8081/repository/flask-devops-artifacts//app-artifact.tar.gz
+            curl -u $NEXUS_USER:$NEXUS_PASS --fail --upload-file app-artifact.tar.gz http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
           '''
         }
       }
