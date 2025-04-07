@@ -33,7 +33,9 @@ pipeline {
             pip install coverage pytest
             coverage run -m pytest tests/
             coverage xml
-            sonar-scanner -Dsonar.projectKey=flask-devops-app -Dsonar.python.coverage.reportPaths=coverage.xml
+            sonar-scanner \
+              -Dsonar.projectKey=flask-devops-app \
+              -Dsonar.python.coverage.reportPaths=coverage.xml
           '''
         }
       }
@@ -70,7 +72,9 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
           sh '''
-            curl -u $NEXUS_USER:$NEXUS_PASS --fail --upload-file app-artifact.tar.gz http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
+            curl -u $NEXUS_USER:$NEXUS_PASS --fail \
+              --upload-file app-artifact.tar.gz \
+              http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
           '''
         }
       }
