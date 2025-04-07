@@ -1,3 +1,4 @@
+HEAD
 ---
 - name: Deploy Flask app to Flask instances
   hosts: aws_ec2
@@ -46,3 +47,9 @@
       args:
         chdir: /home/ec2-user/flask-app/
 
+- name: Deploy Flask app to flask servers
+  hosts: flask
+  become: true
+  roles:
+    - flask
+  1b2e8a9 (fix: update Ansible playbook to deploy app from Jenkins workspace)
