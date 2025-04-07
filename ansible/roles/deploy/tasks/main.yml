@@ -1,0 +1,32 @@
+- name: Create app directory
+  file:
+    path: "{{ user_home }}/flask-app"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0755'
+
+- name: Download app artifact from Nexus
+  get_url:
+    url: http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
+    dest: "{{ user_home }}/flask-app/app-artifact.tar.gz"
+    mode: '0644'
+
+- name: Extract artifact
+  unarchive:
+    src: "{{ user_home }}/flask-app/app-artifact.tar.gz"
+    dest: "{{ user_home }}/flask-app"
+    remote_src: yes
+
+- name: Install Python requirements
+  pip:
+    requirements: "{{ user_home }}/flask-app/requirements.txt"
+    virtualenv: "{{ user_home }}/flask-app/venv"
+
+- name: Start Flask app
+  shell: |
+    source {{ user_home }}/flask-app/venv/bin/activate
+    nohup python3 {{ user_home }}/flask-app/app.py > {{ user_home }}/flask-app/flask.log 2>&1 &
+  args:
+    executable: /bin/bash
+

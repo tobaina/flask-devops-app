@@ -86,7 +86,7 @@ pipeline {
               -i ansible/dynamic_inventory.aws_ec2.yml \
               ansible/playbooks/deploy_flask.yml \
               -u ec2-user \
-              --private-key /home/ubuntu/wood.pem
+              --private-key /var/lib/jenkins/wood.pem
           '''
         }
       }
