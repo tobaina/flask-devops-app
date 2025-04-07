@@ -1,7 +1,8 @@
 ---
 - name: Deploy Flask app to Flask instances
-  hosts: aws_ec2
+  hosts: tag_debian_node
   become: yes
+
   tasks:
     - name: Ensure Python3, pip, tar, and sqlite3 are installed
       package:
