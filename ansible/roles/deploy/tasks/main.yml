@@ -1,32 +1,53 @@
+---
+
+- name: Ensure necessary packages are installed
+  package:
+    name:
+      - python3
+      - python3-pip
+      - tar
+      - sqlite
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure necessary packages are installed (Debian/Ubuntu)
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - tar
+      - sqlite3
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
 - name: Create app directory
   file:
-    path: "{{ user_home }}/flask-app"
+    path: ~/flask-app
     state: directory
-    owner: "{{ user }}"
-    group: "{{ user }}"
     mode: '0755'
 
 - name: Download app artifact from Nexus
   get_url:
     url: http://35.183.72.244:8081/repository/flask-devops-artifacts/app-artifact.tar.gz
-    dest: "{{ user_home }}/flask-app/app-artifact.tar.gz"
+    dest: ~/flask-app/app-artifact.tar.gz
     mode: '0644'
 
 - name: Extract artifact
   unarchive:
-    src: "{{ user_home }}/flask-app/app-artifact.tar.gz"
-    dest: "{{ user_home }}/flask-app"
+    src: ~/flask-app/app-artifact.tar.gz
+    dest: ~/flask-app
     remote_src: yes
 
 - name: Install Python requirements
   pip:
-    requirements: "{{ user_home }}/flask-app/requirements.txt"
-    virtualenv: "{{ user_home }}/flask-app/venv"
+    requirements: ~/flask-app/requirements.txt
+    virtualenv: ~/flask-app/venv
 
 - name: Start Flask app
   shell: |
-    source {{ user_home }}/flask-app/venv/bin/activate
-    nohup python3 {{ user_home }}/flask-app/app.py > {{ user_home }}/flask-app/flask.log 2>&1 &
+    source ~/flask-app/venv/bin/activate
+    nohup python3 ~/flask-app/app.py > ~/flask-app/flask.log 2>&1 &
   args:
     executable: /bin/bash
 
