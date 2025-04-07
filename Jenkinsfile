@@ -8,7 +8,10 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        git 'https://github.com/tobaina/flask-devops-app.git'
+        checkout([$class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[url: 'https://github.com/tobaina/flask-devops-app.git']]
+        ])
       }
     }
 
