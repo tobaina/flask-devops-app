@@ -4,7 +4,11 @@ regions:
 filters:
   tag:Environment: flask
 hostnames:
-  - tag:Name
+  - public-ip-address
+keyed_groups:
+  - key: tags.Name
+    prefix: tag
+    separator: "_"
 compose:
   ansible_host: public_ip_address
   ansible_user: |
@@ -17,3 +21,4 @@ compose:
     {%- else -%}
     ec2-user
     {%- endif -%}
+
