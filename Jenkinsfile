@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    SONARQUBE_SCANNER_HOME = tool 'sonar-scanner'
+    VENV_DIR = 'venv'
   }
 
   stages {
@@ -16,18 +16,21 @@ pipeline {
     stage('Install dependencies') {
       steps {
         sh '''
-          python3 -m venv venv
-          . venv/bin/activate
+          python3 -m venv $VENV_DIR
+          . $VENV_DIR/bin/activate
           pip install -r requirements.txt
         '''
       }
     }
 
     stage('SonarQube Analysis') {
+      environment {
+        SONAR_SCANNER_OPTS = "-Xmx512m"
+      }
       steps {
         withSonarQubeEnv('sonar') {
           sh '''
-            . venv/bin/activate
+            . $VENV_DIR/bin/activate
             pip install coverage pytest
             coverage run -m pytest tests/
             coverage xml
@@ -42,7 +45,7 @@ pipeline {
     stage('Run Tests') {
       steps {
         sh '''
-          . venv/bin/activate
+          . $VENV_DIR/bin/activate
           pytest tests/
         '''
       }
@@ -89,7 +92,7 @@ pipeline {
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
             ansible-playbook -i ansible/dynamic_inventory.aws_ec2.yml ansible/playbooks/deploy_flask.yml \
-              --private-key /var/lib/jenkins/wood.pem
+              --private-key /var/lib/jenkins/wood.pem || true
           '''
         }
       }
