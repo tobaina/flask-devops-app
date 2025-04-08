@@ -2,16 +2,14 @@ pipeline {
   agent any
 
   environment {
-    SONARQUBE = 'sonar'
+    SONARQUBE_SCANNER_HOME = tool 'sonar-scanner'
   }
 
   stages {
+
     stage('Checkout') {
       steps {
-        checkout([$class: 'GitSCM',
-          branches: [[name: '*/main']],
-          userRemoteConfigs: [[url: 'https://github.com/tobaina/flask-devops-app.git']]
-        ])
+        checkout scm
       }
     }
 
@@ -27,7 +25,7 @@ pipeline {
 
     stage('SonarQube Analysis') {
       steps {
-        withSonarQubeEnv("${env.SONARQUBE}") {
+        withSonarQubeEnv('sonar') {
           sh '''
             . venv/bin/activate
             pip install coverage pytest
@@ -82,13 +80,15 @@ pipeline {
 
     stage('Deploy with Ansible') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-s3-creds']]) {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: 'aws-s3-creds'
+        ]]) {
           sh '''
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-            ansible-playbook \
-              -i ansible/dynamic_inventory.aws_ec2.yml \
-              ansible/playbooks/deploy_flask.yml \
+
+            ansible-playbook -i ansible/dynamic_inventory.aws_ec2.yml ansible/playbooks/deploy_flask.yml \
               --private-key /var/lib/jenkins/wood.pem
           '''
         }
@@ -96,3 +96,4 @@ pipeline {
     }
   }
 }
+
